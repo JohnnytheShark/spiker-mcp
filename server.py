@@ -85,7 +85,7 @@ async def handle_list_resources() -> list[types.Resource]:
     ]
 
 @app_server.read_resource()
-async def handle_read_resource(uri: str) -> list[types.TextResourceContent | types.BlobResourceContent]:
+async def handle_read_resource(uri: str) -> list[types.TextResourceContents | types.BlobResourceContents]:
     logger.info(f"Reading resource: {uri}")
     if uri == "spiker://docs":
         # Read the sibling markdown file safely
@@ -118,7 +118,7 @@ async def handle_sse(request):
 starlette_app = Starlette(
     routes=[
         Route("/sse", endpoint=handle_sse),
-        Route("/messages", endpoint=sse.handle_post_messages, methods=["POST"]),
+        Route("/messages", endpoint=sse.handle_post_message, methods=["POST"]),
     ]
 )
 
