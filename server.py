@@ -1,0 +1,126 @@
+import asyncio
+import logging
+from pathlib import Path
+from mcp.server import Server
+from mcp.server.sse import SseServerTransport
+import mcp.types as types
+from starlette.applications import Starlette
+from starlette.routing import Route
+from starlette.responses import JSONResponse
+import uvicorn
+
+# Configure logging to stdout
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("spiker-mcp")
+
+# 1. Initialize the S.P.I.K.E.R. Core Server
+app_server = Server("SPIKER-Sensei")
+
+# Define the Analysis Tool
+@app_server.list_tools()
+async def handle_list_tools() -> list[types.Tool]:
+    logger.info("Listing tools...")
+    return [
+        types.Tool(
+            name="analyze_spiker",
+            description="Audit code via S.P.I.K.E.R. methodology.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "code": {"type": "string"},
+                    "context": {"type": "string"}
+                }
+            }
+        )
+    ]
+
+# Handle Tool Execution
+@app_server.call_tool()
+async def handle_call_tool(name: str, arguments: dict | None) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+    # Security/Hygiene: Log the call, but truncate arguments to avoid leaking secrets or flooding logs
+    safe_args = str(arguments)
+    if len(safe_args) > 500:
+        safe_args = safe_args[:500] + "... (truncated)"
+    
+    logger.info(f"Tool called: {name} with arguments: {safe_args}")
+    if name == "analyze_spiker":
+        args = arguments or {}
+        code = args.get("code", "")
+        context = args.get("context", "")
+        
+        # The S.P.I.K.E.R. Logic Spike
+        # We return a prompt that guides the LLM to apply the methodology.
+        return [
+            types.TextContent(
+                type="text",
+                text=f"""
+Applying S.P.I.K.E.R. Analysis:
+
+1. Intent (S): Is '{context}' clearly solved?
+2. Hygiene (P): Are there redundant patterns in the provided code?
+3. Isolation (I): Does this code leak side effects?
+4. Purity (K): Are dependencies kept to a minimum?
+5. Aging (E): Is the structure documented for the next dev?
+6. Refinement (R): Suggest a testing strategy for this block.
+
+CODE TO ANALYZE:
+{code}
+"""
+            )
+        ]
+    
+    raise ValueError(f"Unknown tool: {name}")
+
+# 3. Define Resources (The Manifesto)
+@app_server.list_resources()
+async def handle_list_resources() -> list[types.Resource]:
+    logger.info("Listing resources...")
+    return [
+        types.Resource(
+            uri="spiker://docs",
+            name="S.P.I.K.E.R. Methodology",
+            description="The full philosophical specification.",
+            mimeType="text/markdown"
+        )
+    ]
+
+@app_server.read_resource()
+async def handle_read_resource(uri: str) -> list[types.TextResourceContent | types.BlobResourceContent]:
+    logger.info(f"Reading resource: {uri}")
+    if uri == "spiker://docs":
+        # Read the sibling markdown file safely
+        file_path = Path(__file__).parent / "SPIKE_METHODOLOGY.md"
+        if not file_path.exists():
+            raise ValueError("Methodology file not found.")
+            
+        return [
+            types.TextResourceContent(
+                uri=uri,
+                mimeType="text/markdown",
+                text=file_path.read_text()
+            )
+        ]
+    
+    raise ValueError(f"Unknown resource: {uri}")
+
+# 4. SSE Transport Setup
+sse = SseServerTransport("/messages")
+
+async def handle_sse(request):
+    async with sse.connect_scope(request.scope, request.receive, request.send):
+        await app_server.run(
+            sse.read_stream,
+            sse.write_stream,
+            app_server.create_initialization_options()
+        )
+
+# 3. Starlette Web Routing
+starlette_app = Starlette(
+    routes=[
+        Route("/sse", endpoint=handle_sse),
+        Route("/messages", endpoint=sse.handle_post_messages, methods=["POST"]),
+    ]
+)
+
+if __name__ == "__main__":
+    uvicorn.run(starlette_app, host="0.0.0.0", port=8000)
