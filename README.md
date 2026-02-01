@@ -17,7 +17,8 @@ In Japan, the highest-quality fish is prepared using **Ikejime**. By instantly s
 ### 🚀 Quick Start (Docker)
 1. Clone the repo.
 2. Build the "Sensei": `docker build -t spiker-mcp .`
-3. Add to your MCP Config:
+3. Run the "Sensei": `docker run -p 8000:8000 spiker-mcp`
+4. Add to your MCP Config:
 ```json
 {
   "mcpServers": {
