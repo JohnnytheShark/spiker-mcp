@@ -7,7 +7,7 @@ from mcp.server.lowlevel import NotificationOptions
 from mcp.server.models import InitializationOptions
 import mcp.types as types
 from starlette.applications import Starlette
-from starlette.routing import Route
+from starlette.routing import Mount, Route
 from starlette.responses import Response
 import uvicorn
 
@@ -106,10 +106,10 @@ async def handle_read_resource(uri: str) -> list[types.TextResourceContents | ty
     raise ValueError(f"Unknown resource: {uri}")
 
 # 4. SSE Transport Setup
-sse = SseServerTransport("/messages")
+sse = SseServerTransport("/messages/")
 
 async def handle_sse(request):
-    async with sse.connect_sse(request.scope, request.receive, request.send) as (read_stream, write_stream):
+    async with sse.connect_sse(request.scope, request.receive, request._send) as (read_stream, write_stream):
         await app_server.run(
             read_stream,
             write_stream,
@@ -127,8 +127,8 @@ async def handle_sse(request):
 # 3. Starlette Web Routing
 starlette_app = Starlette(
     routes=[
-        Route("/sse", endpoint=handle_sse),
-        Route("/messages", endpoint=sse.handle_post_message, methods=["POST"]),
+        Route("/sse", endpoint=handle_sse, methods=["GET"]),
+        Mount("/messages/", app=sse.handle_post_message),
     ]
 )
 
