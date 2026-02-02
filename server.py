@@ -3,10 +3,12 @@ import logging
 from pathlib import Path
 from mcp.server import Server
 from mcp.server.sse import SseServerTransport
+from mcp.server.lowlevel import NotificationOptions
+from mcp.server.models import InitializationOptions
 import mcp.types as types
 from starlette.applications import Starlette
 from starlette.routing import Route
-from starlette.responses import JSONResponse
+from starlette.responses import Response
 import uvicorn
 
 # Configure logging to stdout
@@ -107,12 +109,20 @@ async def handle_read_resource(uri: str) -> list[types.TextResourceContents | ty
 sse = SseServerTransport("/messages")
 
 async def handle_sse(request):
-    async with sse.connect_scope(request.scope, request.receive, request.send):
+    async with sse.connect_sse(request.scope, request.receive, request.send) as (read_stream, write_stream):
         await app_server.run(
-            sse.read_stream,
-            sse.write_stream,
-            app_server.create_initialization_options()
+            read_stream,
+            write_stream,
+            InitializationOptions(
+                server_name="SPIKER-Sensei",
+                server_version="0.1.0",
+                capabilities=app_server.get_capabilities(
+                    notification_options=NotificationOptions(),
+                    experimental_capabilities={},
+                ),
+            ),
         )
+    return Response()
 
 # 3. Starlette Web Routing
 starlette_app = Starlette(
