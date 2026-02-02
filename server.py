@@ -56,17 +56,23 @@ async def handle_call_tool(name: str, arguments: dict | None) -> list[types.Text
             types.TextContent(
                 type="text",
                 text=f"""
-Applying S.P.I.K.E.R. Analysis:
+Act as a S.P.I.K.E.R. Methodology Consultant. Evaluate the provided codebase against the six S.P.I.K.E.R. pillars.
 
-1. Intent (S): Is '{context}' clearly solved?
-2. Hygiene (P): Are there redundant patterns in the provided code?
-3. Isolation (I): Does this code leak side effects?
-4. Purity (K): Are dependencies kept to a minimum?
-5. Aging (E): Is the structure documented for the next dev?
-6. Refinement (R): Suggest a testing strategy for this block.
+CONTEXT:
+{context}
 
 CODE TO ANALYZE:
 {code}
+
+ANALYSIS FRAMEWORK:
+1. [S]pike (Intent): Identify 'Systemic Ambiguity'. Is the intent clear?
+2. [P]urge (Hygiene): Identify 'Sanguineous Logic' (dead code, redundancy).
+3. [I]solate (Isolation): Check for 'Nerve Propagation' (side effects, coupling).
+4. [K]inetic (Purity): Check for 'Tap Water Bloat' (unnecessary dependencies).
+5. [E]nzymatic (Aging): Check for 'Rot-prone Design' (extensibility, docs).
+6. [R]efine (Refinement): Suggest 'Rigorous Refinement' (testing strategies).
+
+Format output as an ADR (Architecture Decision Record) and organize supporting docs via Diataxis where applicable.
 """
             )
         ]
